@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gensoft Business Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .tab-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .loading {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100">
+    <div class="container mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Gensoft Business Dashboard</h1>
+            <p class="text-gray-600">Real-time analytics for freight forwarding operations</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-xl shadow-lg p-2 mb-6 flex gap-2">
+            <button onclick="switchView('financial')" id="tab-financial" class="flex-1 py-3 px-6 rounded-lg font-semibold transition-all tab-active">
+                💰 Financial
+            </button>
+            <button onclick="switchView('operational')" id="tab-operational" class="flex-1 py-3 px-6 rounded-lg font-semibold transition-all text-gray-600 hover:bg-gray-100">
+                📦 Operational
+            </button>
+            <button onclick="switchView('customer')" id="tab-customer" class="flex-1 py-3 px-6 rounded-lg font-semibold transition-all text-gray-600 hover:bg-gray-100">
+                👥 Customers
+            </button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading" style="display: none;"></div>
+
+        <!-- Financial View -->
+        <div id="view-financial" class="view-content">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                    <div class="text-gray-600 text-sm mb-2">Total Revenue (YTD)</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-revenue">-</div>
+                    <div class="text-sm text-gray-500 mt-1">Year to date</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+                    <div class="text-gray-600 text-sm mb-2">Outstanding</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-outstanding">-</div>
+                    <div class="text-sm text-gray-500 mt-1" id="stat-outstanding-count">-</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                    <div class="text-gray-600 text-sm mb-2">Avg Invoice Value</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-avg-invoice">-</div>
+                    <div class="text-sm text-gray-500 mt-1">Per invoice</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                    <div class="text-gray-600 text-sm mb-2">Avg Collection</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-collection">-</div>
+                    <div class="text-sm text-gray-500 mt-1">days</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Revenue Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-revenue"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Outstanding Invoices</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-outstanding"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Profit by Service</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-profit"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Currency Exposure</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-currency"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operational View -->
+        <div id="view-operational" class="view-content" style="display: none;">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                    <div class="text-gray-600 text-sm mb-2">Active Bookings</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-bookings">-</div>
+                    <div class="text-sm text-gray-500 mt-1">In pipeline</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                    <div class="text-gray-600 text-sm mb-2">Avg Booking Value</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-avg-booking">-</div>
+                    <div class="text-sm text-gray-500 mt-1">Per booking</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+                    <div class="text-gray-600 text-sm mb-2">Total Containers</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-containers">-</div>
+                    <div class="text-sm text-gray-500 mt-1">This year</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                    <div class="text-gray-600 text-sm mb-2">Pipeline Value</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-pipeline">-</div>
+                    <div class="text-sm text-gray-500 mt-1">Potential revenue</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Booking Pipeline</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-pipeline"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Service Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-services"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Top Routes</h3>
+                <div id="routes-table"></div>
+            </div>
+        </div>
+
+        <!-- Customer View -->
+        <div id="view-customer" class="view-content" style="display: none;">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                    <div class="text-gray-600 text-sm mb-2">Total Clients</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-clients">-</div>
+                    <div class="text-sm text-gray-500 mt-1">Active customers</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                    <div class="text-gray-600 text-sm mb-2">Avg Customer Value</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-avg-customer">-</div>
+                    <div class="text-sm text-gray-500 mt-1">Lifetime value</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                    <div class="text-gray-600 text-sm mb-2">Active This Year</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-active-customers">-</div>
+                    <div class="text-sm text-gray-500 mt-1">YTD customers</div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+                    <div class="text-gray-600 text-sm mb-2">New Customers</div>
+                    <div class="text-3xl font-bold text-gray-900" id="stat-new-customers">-</div>
+                    <div class="text-sm text-gray-500 mt-1">Last 3 months</div>
+                </div>
+            </div>
+
+            <!-- Top Clients Table -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Top 10 Clients</h3>
+                <div id="clients-table" class="overflow-x-auto"></div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Customer Segmentation</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-segmentation"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Customer Activity</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-activity"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:5000/api';
+        
+        // Chart instances
+        let charts = {};
+        
+        // Show error message to user
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg z-50';
+            errorDiv.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">⚠️</span>
+                    <div>
+                        <div class="font-bold">Connection Error</div>
+                        <div class="text-sm">${message}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+        
+        // Show success message
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50';
+            successDiv.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">✓</span>
+                    <div>
+                        <div class="font-bold">Success</div>
+                        <div class="text-sm">${message}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(successDiv);
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+
+        // Utility function to format currency
+        function formatCurrency(value, currency = 'LKR') {
+            if (!value) return '-';
+            const val = parseFloat(value);
+            if (isNaN(val)) return '-';
+            if (val >= 1000000) {
+                return `${currency} ${(val / 1000000).toFixed(2)}M`;
+            } else if (val >= 1000) {
+                return `${currency} ${(val / 1000).toFixed(0)}K`;
+            }
+            return `${currency} ${val.toFixed(0)}`;
+        }
+
+        // Switch between views
+        function switchView(view) {
+            document.querySelectorAll('.view-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                el.classList.remove('tab-active');
+                el.classList.add('text-gray-600', 'hover:bg-gray-100');
+            });
+            
+            document.getElementById(`view-${view}`).style.display = 'block';
+            const tab = document.getElementById(`tab-${view}`);
+            tab.classList.add('tab-active');
+            tab.classList.remove('text-gray-600', 'hover:bg-gray-100');
+            
+            // Load data for the view
+            if (view === 'financial') loadFinancialData();
+            else if (view === 'operational') loadOperationalData();
+            else if (view === 'customer') loadCustomerData();
+        }
+
+        // API call wrapper with better error handling
+        async function apiCall(endpoint) {
+            try {
+                console.log(`🔄 Calling API: ${API_BASE_URL}${endpoint}`);
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log(`✓ API Response for ${endpoint}:`, data);
+                return data;
+            } catch (error) {
+                console.error('❌ API Error:', error);
+                
+                if (error.message.includes('Failed to fetch')) {
+                    showError('Cannot connect to backend server. Make sure it is running on port 5000.');
+                } else {
+                    showError(`API Error: ${error.message}`);
+                }
+                
+                return null;
+            }
+        }
+        
+        // Test backend connection on load
+        async function testConnection() {
+            console.log('🔍 Testing backend connection...');
+            const health = await apiCall('/health');
+            if (health && health.status === 'healthy') {
+                console.log('✓ Backend connected successfully!');
+                showSuccess('Connected to backend server!');
+                return true;
+            } else {
+                console.error('✗ Backend not responding');
+                showError('Backend server is not responding. Check if it\'s running.');
+                return false;
+            }
+        }
+
+        // Load Financial Data
+        async function loadFinancialData() {
+            document.getElementById('loading').style.display = 'block';
+            
+            // Load summary
+            const summary = await apiCall('/financial/summary');
+            if (summary) {
+                document.getElementById('stat-revenue').textContent = formatCurrency(summary.total_revenue);
+                document.getElementById('stat-outstanding').textContent = formatCurrency(summary.outstanding_total);
+                document.getElementById('stat-outstanding-count').textContent = `${summary.outstanding_count || 0} invoices`;
+                document.getElementById('stat-avg-invoice').textContent = formatCurrency(summary.avg_invoice_value);
+                document.getElementById('stat-collection').textContent = Math.round(summary.avg_collection_days || 0);
+            }
+
+            // Load revenue trend - now automatically gets last 12 months
+            const revenue = await apiCall('/financial/revenue-by-month');
+            
+            if (revenue && revenue.length > 0) {
+                console.log('✓ Revenue data found:', revenue.length, 'months');
+                createLineChart('chart-revenue', 
+                    revenue.map(r => r.month_name || r.month_year), 
+                    revenue.map(r => parseFloat(r.total_revenue) || 0), 
+                    'Revenue');
+            } else {
+                console.error('❌ No revenue data found');
+                // Show empty chart with message
+                const ctx = document.getElementById('chart-revenue');
+                if (charts['chart-revenue']) charts['chart-revenue'].destroy();
+                const parent = ctx.parentElement;
+                parent.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400">No revenue data available</div>';
+            }
+
+            // Load outstanding invoices
+            const outstanding = await apiCall('/financial/outstanding-invoices');
+            if (outstanding && outstanding.length > 0) {
+                createBarChart('chart-outstanding', outstanding.map(o => o.aging_category),
+                    outstanding.map(o => parseFloat(o.total_amount) || 0), 'Amount');
+            }
+
+            // Load profit by service
+            const profit = await apiCall('/financial/profit-by-service');
+            if (profit && profit.length > 0) {
+                createBarChart('chart-profit', profit.map(p => p.service_type),
+                    profit.map(p => parseFloat(p.total_revenue) || 0), 'Revenue');
+            }
+
+            // Load currency exposure
+            const currency = await apiCall('/financial/currency-exposure');
+            if (currency && currency.length > 0) {
+                createPieChart('chart-currency', currency.map(c => c.currency),
+                    currency.map(c => parseFloat(c.total_amount) || 0));
+            }
+
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Load Operational Data
+        async function loadOperationalData() {
+            document.getElementById('loading').style.display = 'block';
+
+            // Load summary
+            const summary = await apiCall('/operational/summary');
+            if (summary) {
+                document.getElementById('stat-bookings').textContent = summary.active_bookings || 0;
+                document.getElementById('stat-avg-booking').textContent = formatCurrency(summary.avg_booking_value);
+                document.getElementById('stat-containers').textContent = `${summary.total_containers || 0} TEU`;
+                document.getElementById('stat-pipeline').textContent = formatCurrency(summary.pipeline_value);
+            }
+
+            // Load booking pipeline
+            const pipeline = await apiCall('/operational/booking-pipeline');
+            if (pipeline && pipeline.length > 0) {
+                createBarChart('chart-pipeline', pipeline.map(p => p.status),
+                    pipeline.map(p => parseFloat(p.booking_count) || 0), 'Bookings');
+            }
+
+            // Load service distribution
+            const services = await apiCall('/operational/service-distribution');
+            if (services && services.length > 0) {
+                createPieChart('chart-services', services.map(s => s.service_type),
+                    services.map(s => parseFloat(s.booking_count) || 0));
+            }
+
+            // Load top routes
+            const routes = await apiCall('/operational/top-routes?limit=10');
+            if (routes && routes.length > 0) {
+                let html = '<table class="w-full"><thead><tr class="border-b-2">';
+                html += '<th class="text-left py-3 px-4">Route</th>';
+                html += '<th class="text-center py-3 px-4">Shipments</th>';
+                html += '<th class="text-center py-3 px-4">Containers</th>';
+                html += '<th class="text-right py-3 px-4">Value</th></tr></thead><tbody>';
+                
+                routes.forEach((route, idx) => {
+                    html += `<tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4"><span class="font-semibold">${idx + 1}.</span> ${route.route}</td>
+                        <td class="text-center py-3 px-4">${route.shipment_count}</td>
+                        <td class="text-center py-3 px-4">${route.total_containers || 0}</td>
+                        <td class="text-right py-3 px-4 font-semibold">${formatCurrency(route.total_value)}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                document.getElementById('routes-table').innerHTML = html;
+            }
+
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Load Customer Data
+        async function loadCustomerData() {
+            document.getElementById('loading').style.display = 'block';
+
+            // Load summary
+            const summary = await apiCall('/customers/summary');
+            if (summary) {
+                document.getElementById('stat-clients').textContent = summary.total_customers || 0;
+                document.getElementById('stat-avg-customer').textContent = formatCurrency(summary.avg_customer_value);
+                document.getElementById('stat-active-customers').textContent = summary.ytd_active_customers || 0;
+                document.getElementById('stat-new-customers').textContent = summary.new_customers_3m || 0;
+            }
+
+            // Load top clients
+            const clients = await apiCall('/customers/top-clients?limit=10');
+            if (clients && clients.length > 0) {
+                let html = '<table class="w-full"><thead><tr class="border-b-2">';
+                html += '<th class="text-left py-3 px-4">Rank</th>';
+                html += '<th class="text-left py-3 px-4">Client Name</th>';
+                html += '<th class="text-center py-3 px-4">Bookings</th>';
+                html += '<th class="text-right py-3 px-4">Revenue</th>';
+                html += '<th class="text-right py-3 px-4">LTV</th></tr></thead><tbody>';
+                
+                clients.forEach((client, idx) => {
+                    html += `<tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4"><div class="w-8 h-8 rounded-full ${idx < 3 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white' : 'bg-gray-200'} flex items-center justify-center font-bold">${idx + 1}</div></td>
+                        <td class="py-3 px-4 font-semibold">${client.client_name}</td>
+                        <td class="text-center py-3 px-4"><span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">${client.total_bookings}</span></td>
+                        <td class="text-right py-3 px-4 font-semibold">${formatCurrency(client.total_revenue)}</td>
+                        <td class="text-right py-3 px-4">${formatCurrency(client.estimated_ltv)}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                document.getElementById('clients-table').innerHTML = html;
+            }
+
+            // Load segmentation
+            const segments = await apiCall('/customers/segmentation');
+            if (segments && segments.length > 0) {
+                createPieChart('chart-segmentation', segments.map(s => s.segment),
+                    segments.map(s => parseFloat(s.segment_revenue) || 0));
+            }
+
+            // Load activity - now gets last 12 months
+            const activity = await apiCall('/customers/activity-trend');
+            if (activity && activity.length > 0) {
+                console.log('✓ Activity data found:', activity.length, 'months');
+                createStackedBarChart('chart-activity', 
+                    activity.map(a => a.month_name),
+                    activity.map(a => parseInt(a.new_customers) || 0), 
+                    activity.map(a => parseInt(a.repeat_customers) || 0));
+            } else {
+                console.error('❌ No customer activity data found');
+                const ctx = document.getElementById('chart-activity');
+                if (charts['chart-activity']) charts['chart-activity'].destroy();
+                const parent = ctx.parentElement;
+                parent.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400">No activity data available</div>';
+            }
+
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Chart creation functions
+        function createLineChart(canvasId, labels, data, label) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function createBarChart(canvasId, labels, data, label) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function createPieChart(canvasId, labels, data) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function createStackedBarChart(canvasId, labels, data1, data2) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'New', data: data1, backgroundColor: '#f59e0b' },
+                        { label: 'Repeat', data: data2, backgroundColor: '#667eea' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                        x: { stacked: true }, 
+                        y: { stacked: true, beginAtZero: true } 
+                    }
+                }
+            });
+        }
+
+        // Initialize dashboard
+        window.onload = async () => {
+            console.log('🚀 Dashboard starting...');
+            console.log('📡 API URL:', API_BASE_URL);
+            
+            // Test connection first
+            const connected = await testConnection();
+            
+            if (connected) {
+                // Load initial data
+                loadFinancialData();
+            } else {
+                document.getElementById('loading').style.display = 'none';
+                console.error('❌ Cannot start dashboard - backend not connected');
+            }
+        };
+    </script>
+</body>
+</html>
