@@ -2,7 +2,6 @@ Gensoft Freight Forwarding Business Dashboard
 
 A comprehensive business intelligence dashboard for freight forwarding operations, built with Python Flask backend and modern responsive frontend.
 
-![Dashboard Preview](screenshots/dashboard-financial.png)
 
 🎯 Project Overview
 
