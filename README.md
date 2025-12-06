@@ -158,19 +158,6 @@ python -m http.server 8000
 
 Then visit: `http://localhost:8000`
 
-📸 Screenshots
-
-Financial Dashboard
-![Financial Dashboard](screenshots/dashboard-financial.png)
-
-Operational Dashboard
-![Operational Dashboard](screenshots/dashboard-operational.png)
-
-Customer Intelligence
-![Customer Dashboard](screenshots/dashboard-customer.png)
-
-API Response
-![API Response](screenshots/api-response.png)
 
 🗄️ Database Schema
 
@@ -199,7 +186,6 @@ Views
 - Customer insights
 - Activity monitoring
 
-See: [database/views.sql](database/views.sql)
 
 🎨 Design Decisions
 
